@@ -120,7 +120,7 @@ int client_setup(char * server) {
 
 int convert_int(char *buffer){
 	int num = atoi(buffer);
-	if (num < 1 || num > 7){
+	if (num < 0 || num > 6){
 		printf("Not valid move from opponent\n");
 	}
 	return num;
@@ -131,17 +131,21 @@ int get_int(char *buffer, char player) {
     printf("place red piece on: ");
   }
   else {
-    printf("place blue piece on: ");
+    printf("place yellow piece on: ");
   }
   fgets(buffer, sizeof buffer, stdin);
+  *strchr(buffer, '\n') = 0;
   int num = atoi(buffer);
-  while (num < 1 || num > 7){
+  if (strlen(buffer) == 0){
+    num = -1;
+  }
+  while (num < 0 || num > 6){
     printf("Not a valid input. Try again\n");
     if (player == 1) {
       printf("place red piece on: ");
     }
     else {
-      printf("place blue piece on: ");
+      printf("place yellow piece on: ");
     }
     fgets(buffer, sizeof buffer, stdin);
     num = atoi(buffer);
@@ -161,7 +165,6 @@ int place_piece(char board[6][7], char player, int c) {
   for (int r = 5; real_row(r); r --) {
     if (board[r][c] == 0) {
       board[r][c] = player;
-      printf("%d, %d\n", r, c);
       return 0;
     }
   }
@@ -176,12 +179,12 @@ void print_hole(char player) {
     printf("\U0001F534");
   }
   else {
-    printf("\U0001F535");
+    printf("\U0001F7E1");//player 2, client
   }
 }
 
 void print_board(char board[6][7]) {
-  printf("1 2 3 4 5 6 7 \n");
+  printf("0 1 2 3 4 5 6 6 \n");
   for (int r = 0; real_row(r); r ++) {
     for (int c = 0; real_col(c); c ++) {
       print_hole(board[r][c]);
@@ -195,5 +198,82 @@ void clear_board(char board[6][7]) {
     for (int c = 0; real_col(c); c ++) {
       board[r][c] = 0;
     }
+  }
+}
+
+int full(char board[6][7]) {
+  for (int c = 0; real_col(c); c ++) {
+    if (board[0][c] == 0) {
+      return -1;//board is not full, don't do anything
+    }
+  }
+  return 0;//board is full, tie
+}
+
+char check_winner(char board[6][7], int r, int c, int dr, int dc) {
+  char last;
+  char consec;
+  while (real_row(r) && real_col(c)) {
+    if(last && last == board[r][c]) {
+      consec ++;
+      if (consec >= 4) {
+        return last;
+      }
+    }
+    else {
+      last = board[r][c];
+      consec = 1;
+    }
+    r += dr;
+    c += dc;
+  }
+  return 0;
+}
+
+char get_winner(char board[6][7]) {
+  for (int r = 0; real_row(r); r ++) {
+    char winner = check_winner(board, r, 0, 0, 1);
+    if (winner) {
+      return winner;
+    }
+  }
+  for (int c = 0; real_col(c); c ++) {
+    char winner = check_winner(board, 0, c, 1, 0);
+    if (winner) {
+      return winner;
+    }
+  }
+  return -1;
+}
+
+void show_result(char winner) {
+  if (winner == 0) {
+    printf("The game is a tie!\n");
+  }
+  else if (winner == 1) {
+    printf("Red wins!\n");
+  }
+  else if (winner == 2) {
+    printf("Yellow wins!\n");
+  }
+}
+
+void end_game_server(int winner, char board[6][7], int client_socket){
+  winner = full(board);
+  winner = get_winner(board);
+  show_result(winner);
+  if (winner != -1){
+    close(client_socket);
+    exit(0);
+  }
+}
+
+void end_game_client(int winner, char board[6][7], int server_socket){
+  winner = full(board);
+  winner = get_winner(board);
+  show_result(winner);
+  if (winner != -1){
+    close(server_socket);
+    exit(0);
   }
 }

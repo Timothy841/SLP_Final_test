@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
     server_socket = client_setup( TEST_IP );
 
   int player = 2;
+  int winner = -1;
   char board[6][7];//create board
   clear_board(board);//clear it
   print_board(board);//print clean board
@@ -20,22 +21,24 @@ int main(int argc, char **argv) {
   		int move = convert_int(buffer);//convert to int
   		place_piece(board, player, move);//place piece
   		print_board(board);
-  		player = 2;
+      end_game_client(winner, board, server_socket);
+      player = 2;
   	}
   	else{
   		int move = get_int(buffer, player);//get input to write
-  		int fail = place_piece(board, player, move-1);//see if move fails
+  		int fail = place_piece(board, player, move);//see if move fails
   		if (fail){
   			continue;//start over, new move
   		}
   		print_board(board);
-    		write(server_socket, buffer, sizeof(buffer));//give input to opponent
-  		player = 1;
+    	write(server_socket, buffer, sizeof(buffer));//give input to opponent
+      end_game_client(winner, board, server_socket);
+      player = 1;
   	}
-  
-  
-  
-  
+
+
+
+
   /*
     printf("enter data: ");
     fgets(buffer, sizeof(buffer), stdin);
